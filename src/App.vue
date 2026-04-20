@@ -11,70 +11,110 @@
               :id="`r${temp}`"
               :value="temp"
               v-model="beverageStore.currentTemp"
+              @change="beverageStore.currentBeverage = null"
             />
             {{ temp }}
           </label>
         </template>
       </li>
-    </ul>
-    <ul>
+
       <li>
-        <template v-for="b in beverageStore.bases" :key="b.id">
+        <template v-for="base in beverageStore.bases" :key="base.id">
           <label>
             <input
               type="radio"
-              name="bases"
-              :id="`r${b.id}`"
-              :value="b"
+              name="base"
+              :id="`r${base.id}`"
+              :value="base"
               v-model="beverageStore.currentBase"
+              @change="beverageStore.currentBeverage = null"
             />
-            {{ b.name }}
+            {{ base.name }}
           </label>
         </template>
       </li>
-    </ul>
-    <ul>
+
       <li>
-        <template v-for="s in beverageStore.syrups" :key="s.id">
+        <template v-for="syrup in beverageStore.syrups" :key="syrup.id">
           <label>
             <input
               type="radio"
-              name="syrups"
-              :id="`r${s.id}`"
-              :value="s"
+              name="syrup"
+              :id="`r${syrup.id}`"
+              :value="syrup"
               v-model="beverageStore.currentSyrup"
+              @change="beverageStore.currentBeverage = null"
             />
-            {{ s.name }}
+            {{ syrup.name }}
           </label>
         </template>
       </li>
-    </ul>
-    <ul>
+
       <li>
-        <template v-for="c in beverageStore.creamers" :key="c.id">
+        <template v-for="creamer in beverageStore.creamers" :key="creamer.id">
           <label>
             <input
               type="radio"
-              name="creamers"
-              :id="`r${c.id}`"
-              :value="c"
+              name="creamer"
+              :id="`r${creamer.id}`"
+              :value="creamer"
               v-model="beverageStore.currentCreamer"
+              @change="beverageStore.currentBeverage = null"
             />
-            {{ c.name }}
+            {{ creamer.name }}
           </label>
         </template>
       </li>
+
+      <li>
+        <div v-if="beverageStore.user">
+          <span>Signed in as {{ beverageStore.user.displayName || beverageStore.user.email }}</span>
+          <button @click="beverageStore.signOut()">Sign Out</button>
+        </div>
+        <div v-else>
+          <button @click="beverageStore.withGoogle()">Sign In with Google</button>
+        </div>
+      </li>
+
+      <li>
+        <input type="text" v-model="beverageStore.currentName" placeholder="Beverage Name" />
+        <button
+          @click="beverageStore.makeBeverage()"
+          :disabled="!beverageStore.user"
+        >
+          🍺 Make Beverage
+        </button>
+        <p v-if="!beverageStore.user">Please sign in to save your beverage.</p>
+        <p v-if="beverageStore.flashMessage">{{ beverageStore.flashMessage }}</p>
+        <p v-if="beverageStore.message">{{ beverageStore.message }}</p>
+      </li>
     </ul>
-    <input type="text" placeholder="Beverage Name" />
-    <button>🍺 Make Beverage</button>
+
+    <div id="beverage-container">
+      <template v-if="beverageStore.user">
+        <template v-for="beverage in beverageStore.beverages" :key="beverage.id">
+          <label>
+            <input
+              type="radio"
+              name="savedBeverage"
+              :value="beverage"
+              v-model="beverageStore.currentBeverage"
+              @change="beverageStore.showBeverage(beverage)"
+            />
+            {{ beverage.name }}
+          </label>
+        </template>
+      </template>
+    </div>
   </div>
-  <div id="beverage-container" style="margin-top: 20px"></div>
 </template>
 
 <script setup lang="ts">
 import Beverage from "./components/Beverage.vue";
 import { useBeverageStore } from "./stores/beverageStore";
+
 const beverageStore = useBeverageStore();
+beverageStore.init();
 </script>
 
 <style lang="scss">
@@ -90,5 +130,8 @@ html {
 }
 ul {
   list-style: none;
+}
+li {
+  margin-bottom: 1rem;
 }
 </style>
