@@ -3,12 +3,13 @@ import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCpzQqezaUrXlrnvaN-4Q_SO66V515L-4g",
-  authDomain: "beverageshop-ace5c.firebaseapp.com",
-  projectId: "beverageshop-ace5c",
-  storageBucket: "beverageshop-ace5c.firebasestorage.app",
-  messagingSenderId: "826745717432",
-  appId: "1:826745717432:web:7f93cdea071298b06d2a4d",
+  apiKey: "AIzaSyCfeGmNOIdULtkUDb5rBKrfuqxjFW3PAks",
+  authDomain: "beverageshop-a25b4.firebaseapp.com",
+  databaseURL: "https://beverageshop-a25b4-default-rtdb.firebaseio.com",
+  projectId: "beverageshop-a25b4",
+  storageBucket: "beverageshop-a25b4.firebasestorage.app",
+  messagingSenderId: "727899777685",
+  appId: "1:727899777685:web:cb6fb0f8f0de9ed992099c"
 };
 
 const app = initializeApp(firebaseConfig);
