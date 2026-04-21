@@ -1,18 +1,18 @@
 <template>
   <div>
-    <div style="margin-bottom: 16px">
-      <button v-if="!beverageStore.user" @click="withGoogle">
-        Sign in with Google
-      </button>
-
-      <div v-else>
-        <p>Signed in as: {{ beverageStore.user.displayName || beverageStore.user.email }}</p>
-        <button @click="logout">Sign out</button>
-      </div>
-
-      <p v-if="beverageStore.message">{{ beverageStore.message }}</p>
+    <!-- ── Auth Bar ─────────────────────────────────────────────── -->
+    <div style="margin-bottom: 12px;">
+      <template v-if="beverageStore.user">
+        <span>👤 {{ beverageStore.user.displayName || beverageStore.user.email }}</span>
+        <button @click="signOut" style="margin-left: 12px;">Sign Out</button>
+      </template>
+      <template v-else>
+        <button @click="withGoogle">Sign in with Google</button>
+      </template>
+      <p v-if="authError" style="color: red;">{{ authError }}</p>
     </div>
 
+    <!-- ── Beverage Builder ─────────────────────────────────────── -->
     <Beverage :isIced="beverageStore.currentTemp === 'Cold'" />
 
     <ul>
@@ -90,60 +90,73 @@
     />
 
     <button
-      @click="beverageStore.makeBeverage"
+      @click="handleMakeBeverage"
       :disabled="!beverageStore.user"
     >
       🍺 Make Beverage
     </button>
 
-    <div
-      v-if="beverageStore.user && beverageStore.beverages.length > 0"
-      style="margin-top: 20px"
-    >
-      <h3>Saved Beverages</h3>
-      <template v-for="bev in beverageStore.beverages" :key="bev.id">
-        <label style="display: block">
-          <input
-            type="radio"
-            name="savedBeverages"
-            :value="bev"
-            v-model="beverageStore.currentBeverage"
-            @change="beverageStore.showBeverage"
-          />
-          {{ bev.name }}
-        </label>
-      </template>
+    <p v-if="beverageMessage">{{ beverageMessage }}</p>
+
+    <!-- ── Saved Beverages (only shown when signed in) ──────────── -->
+    <div v-if="beverageStore.user" id="beverage-container" style="margin-top: 20px">
+      <h3>Your Beverages</h3>
+      <ul v-if="beverageStore.beverages.length > 0">
+        <li
+          v-for="bev in beverageStore.beverages"
+          :key="bev.id"
+          @click="beverageStore.showBeverage(bev)"
+          style="cursor: pointer;"
+          :style="{ fontWeight: beverageStore.currentBeverage?.id === bev.id ? 'bold' : 'normal' }"
+        >
+          {{ bev.name }} — {{ bev.temp }} / {{ bev.base.name }} / {{ bev.syrup.name }} / {{ bev.creamer.name }}
+        </li>
+      </ul>
+      <p v-else>No beverages yet. Make one above!</p>
     </div>
   </div>
-
-  <div id="beverage-container" style="margin-top: 20px"></div>
 </template>
 
 <script setup lang="ts">
-import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
+import { ref } from "vue";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut as firebaseSignOut } from "firebase/auth";
 import Beverage from "./components/Beverage.vue";
 import { useBeverageStore } from "./stores/beverageStore";
-import { auth } from "./firebase";
 
 const beverageStore = useBeverageStore();
+const authError = ref("");
+const beverageMessage = ref("");
 
-const withGoogle = async () => {
+// ── Google Sign-In ───────────────────────────────────────────────
+async function withGoogle() {
+  authError.value = "";
   try {
+    const auth = getAuth();
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
-  } catch (error) {
-    beverageStore.message = "Google sign in failed.";
-    console.error(error);
+    // onAuthStateChanged in the store's init() will call setUser() automatically
+  } catch (err: any) {
+    authError.value = "Sign-in failed: " + (err.message ?? "Unknown error");
   }
-};
+}
 
-const logout = async () => {
-  await signOut(auth);
-};
+// ── Sign Out ─────────────────────────────────────────────────────
+async function signOut() {
+  authError.value = "";
+  try {
+    const auth = getAuth();
+    await firebaseSignOut(auth);
+    // onAuthStateChanged will call setUser(null), clearing beverages
+  } catch (err: any) {
+    authError.value = "Sign-out failed: " + (err.message ?? "Unknown error");
+  }
+}
 
-onAuthStateChanged(auth, (user) => {
-  beverageStore.setUser(user);
-});
+// ── Make Beverage ────────────────────────────────────────────────
+async function handleMakeBeverage() {
+  beverageMessage.value = "";
+  beverageMessage.value = await beverageStore.makeBeverage();
+}
 </script>
 
 <style lang="scss">
@@ -157,8 +170,11 @@ html {
   background-color: #6e4228;
   background: linear-gradient(to bottom, #6e4228 0%, #956f5a 100%);
 }
-
 ul {
   list-style: none;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 </style>
