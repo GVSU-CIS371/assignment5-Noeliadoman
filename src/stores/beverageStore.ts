@@ -6,7 +6,7 @@ import {
   BeverageType,
 } from "../types/beverage";
 import tempretures from "../data/tempretures.json";
-import db from "../firebase.ts";
+import { db } from "../firebase";
 import {
   collection,
   getDocs,
