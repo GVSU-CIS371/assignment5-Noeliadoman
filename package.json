@@ -1,5 +1,5 @@
 {
-  "name": "custom-drink-maker",
+  "name": "brew-portal-in-the-cloud",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -10,6 +10,7 @@
     "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "firebase": "^11.10.0",
     "pinia": "^3.0.1",
     "pinia-plugin-persistedstate": "^4.2.0",
     "vue": "^3.4.19"
@@ -27,4 +28,5 @@
     "vite": "^6.2.3",
     "vue-tsc": "^2.2.8"
   }
+}
 }
