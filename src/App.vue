@@ -1,6 +1,20 @@
 <template>
   <div>
+    <div style="margin-bottom: 16px">
+      <button v-if="!beverageStore.user" @click="withGoogle">
+        Sign in with Google
+      </button>
+
+      <div v-else>
+        <p>Signed in as: {{ beverageStore.user.displayName || beverageStore.user.email }}</p>
+        <button @click="logout">Sign out</button>
+      </div>
+
+      <p v-if="beverageStore.message">{{ beverageStore.message }}</p>
+    </div>
+
     <Beverage :isIced="beverageStore.currentTemp === 'Cold'" />
+
     <ul>
       <li>
         <template v-for="temp in beverageStore.temps" :key="temp">
@@ -16,151 +30,119 @@
           </label>
         </template>
       </li>
+    </ul>
+
+    <ul>
       <li>
-        <template v-for="base in beverageStore.bases" :key="base.id">
+        <template v-for="b in beverageStore.bases" :key="b.id">
           <label>
             <input
               type="radio"
-              name="base"
-              :id="`r${base.id}`"
-              :value="base"
+              name="bases"
+              :id="`r${b.id}`"
+              :value="b"
               v-model="beverageStore.currentBase"
             />
-            {{ base.name }}
-          </label>
-        </template>
-      </li>
-      <li>
-        <template v-for="syrup in beverageStore.syrups" :key="syrup.id">
-          <label>
-            <input
-              type="radio"
-              name="syrup"
-              :id="`r${syrup.id}`"
-              :value="syrup"
-              v-model="beverageStore.currentSyrup"
-            />
-            {{ syrup.name }}
-          </label>
-        </template>
-      </li>
-      <li>
-        <template v-for="creamer in beverageStore.creamers" :key="creamer.id">
-          <label>
-            <input
-              type="radio"
-              name="creamer"
-              :id="`r${creamer.id}`"
-              :value="creamer"
-              v-model="beverageStore.currentCreamer"
-            />
-            {{ creamer.name }}
+            {{ b.name }}
           </label>
         </template>
       </li>
     </ul>
 
-    <div class="auth-section">
-      <div v-if="beverageStore.user" class="user-info">
-        <span>{{ beverageStore.user.email }}</span>
-        <button @click="signOut" class="signout-btn">Sign Out</button>
-      </div>
-      <div v-else>
-        <button @click="withGoogle" class="google-signin-btn">Sign In with Google</button>
-      </div>
-      <div v-if="errorMessage" class="error-message">{{ errorMessage }}</div>
-    </div>
+    <ul>
+      <li>
+        <template v-for="s in beverageStore.syrups" :key="s.id">
+          <label>
+            <input
+              type="radio"
+              name="syrups"
+              :id="`r${s.id}`"
+              :value="s"
+              v-model="beverageStore.currentSyrup"
+            />
+            {{ s.name }}
+          </label>
+        </template>
+      </li>
+    </ul>
 
-    <input type="text" placeholder="Beverage Name" v-model="beverageName" />
-    <button 
-      @click="createBeverage"
+    <ul>
+      <li>
+        <template v-for="c in beverageStore.creamers" :key="c.id">
+          <label>
+            <input
+              type="radio"
+              name="creamers"
+              :id="`r${c.id}`"
+              :value="c"
+              v-model="beverageStore.currentCreamer"
+            />
+            {{ c.name }}
+          </label>
+        </template>
+      </li>
+    </ul>
+
+    <input
+      type="text"
+      placeholder="Beverage Name"
+      v-model="beverageStore.currentName"
+    />
+
+    <button
+      @click="beverageStore.makeBeverage"
       :disabled="!beverageStore.user"
-      class="make-beverage-btn"
     >
       🍺 Make Beverage
     </button>
-  </div>
 
-  <div v-if="beverageStore.user" id="beverage-container" style="margin-top: 20px">
-    <div class="saved-beverages">
-      <label
-        v-for="beverage in beverageStore.beverages"
-        :key="beverage.id"
-      >
-        <input
-          type="radio"
-          name="savedBeverage"
-          :value="beverage.id"
-          v-model="beverageStore.selectedBeverageId"
-          @change="beverageStore.showBeverage(beverage)"
-        />
-        {{ beverage.name }}
-      </label>
+    <div
+      v-if="beverageStore.user && beverageStore.beverages.length > 0"
+      style="margin-top: 20px"
+    >
+      <h3>Saved Beverages</h3>
+      <template v-for="bev in beverageStore.beverages" :key="bev.id">
+        <label style="display: block">
+          <input
+            type="radio"
+            name="savedBeverages"
+            :value="bev"
+            v-model="beverageStore.currentBeverage"
+            @change="beverageStore.showBeverage"
+          />
+          {{ bev.name }}
+        </label>
+      </template>
     </div>
   </div>
+
+  <div id="beverage-container" style="margin-top: 20px"></div>
 </template>
 
 <script setup lang="ts">
+import { onAuthStateChanged, GoogleAuthProvider, signInWithPopup, signOut } from "firebase/auth";
 import Beverage from "./components/Beverage.vue";
 import { useBeverageStore } from "./stores/beverageStore";
-import { ref, onMounted } from "vue";
 import { auth } from "./firebase";
-import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
 
 const beverageStore = useBeverageStore();
-const beverageName = ref("");
-const errorMessage = ref("");
 
 const withGoogle = async () => {
   try {
-    errorMessage.value = "";
     const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-    
-    // Set the user in the store to start listening to their beverages
-    await beverageStore.setUser(user);
-    console.log("✓ Signed in as:", user.email);
-  } catch (error: any) {
-    const errorMsg = error?.message || "Sign in failed. Please try again.";
-    console.error("Sign in error:", error);
-    errorMessage.value = errorMsg;
-    // Clear error after 5 seconds
-    setTimeout(() => {
-      errorMessage.value = "";
-    }, 5000);
+    await signInWithPopup(auth, provider);
+  } catch (error) {
+    beverageStore.message = "Google sign in failed.";
+    console.error(error);
   }
 };
 
-const signOut = async () => {
-  try {
-    errorMessage.value = "";
-    await firebaseSignOut(auth);
-    await beverageStore.setUser(null);
-    beverageName.value = "";
-    console.log("✓ Signed out");
-  } catch (error: any) {
-    const errorMsg = error?.message || "Sign out failed. Please try again.";
-    console.error("Sign out error:", error);
-    errorMessage.value = errorMsg;
-  }
+const logout = async () => {
+  await signOut(auth);
 };
 
-const createBeverage = async () => {
-  const message = await beverageStore.makeBeverage(beverageName.value);
-  console.log(message);
-  beverageName.value = "";
-};
-
-// Listen for auth state changes
-onMounted(() => {
-  onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      await beverageStore.setUser(user);
-    } else {
-      await beverageStore.setUser(null);
-    }
-  });
+onAuthStateChanged(auth, (user) => {
+  beverageStore.setUser(user);
 });
 </script>
 
@@ -175,32 +157,8 @@ html {
   background-color: #6e4228;
   background: linear-gradient(to bottom, #6e4228 0%, #956f5a 100%);
 }
+
 ul {
   list-style: none;
-}
-
-.auth-section {
-  margin-bottom: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: center;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  color: white;
-  font-weight: 600;
-}
-
-.error-message {
-  color: #ff6b6b;
-  background-color: rgba(255, 107, 107, 0.1);
-  padding: 10px 15px;
-  border-radius: 5px;
-  font-size: 14px;
-  border-left: 4px solid #ff6b6b;
 }
 </style>
