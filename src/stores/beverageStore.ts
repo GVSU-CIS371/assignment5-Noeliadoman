@@ -9,6 +9,7 @@ import type { BaseBeverageType, CreamerType, SyrupType, BeverageType } from "../
 export const useBeverageStore = defineStore(
   "BeverageStore",
   () => {
+
     const temps    = ref<string[]>(tempretures);
     const allBases    = ref<BaseBeverageType[]>(bases);
     const allCreamers = ref<CreamerType[]>(creamers);
@@ -20,7 +21,9 @@ export const useBeverageStore = defineStore(
     const currentSyrup   = ref<SyrupType>(syrups[0]);
 
     const beverageName = ref<string>("");
+
     const savedBeverages = ref<BeverageType[]>([]);
+
     function makeBeverage() {
       if (!beverageName.value.trim()) return;
       const recipe: BeverageType = {
@@ -34,6 +37,7 @@ export const useBeverageStore = defineStore(
       savedBeverages.value.push(recipe);
       beverageName.value = "";
     }
+
     function showBeverage(recipe: BeverageType) {
       currentTemp.value    = recipe.temp;
       currentBase.value    = recipe.base;
